@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>APP Flujo NV — Petroflex</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a3d62">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flujo NV">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --azul:#0a3d62; --azul-claro:#1e6fa8; --azul-bg:#eef4f9;
+  --verde:#1f9d55; --naranja:#d97706; --rojo:#c0392b; --gris:#5b6b79;
+  --gris-claro:#f4f6f8; --borde:#dde3e9; --texto:#1c2b36; --blanco:#fff;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background:var(--gris-claro);color:var(--texto);}
+header{background:var(--azul);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+header h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.3px;}
+header .sub{font-size:11px;opacity:.75;margin-top:2px;}
+#userbox{font-size:12px;text-align:right;}
+#userbox button{margin-left:10px;background:rgba(255,255,255,.15);border:none;color:#fff;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px;}
+nav{display:flex;gap:2px;background:var(--azul-claro);overflow-x:auto;padding:0 8px;}
+nav button{background:transparent;border:none;color:#fff;padding:11px 14px;font-size:12.5px;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;opacity:.85;}
+nav button.active{border-bottom:3px solid #fff;opacity:1;font-weight:600;background:rgba(255,255,255,.08);}
+main{max-width:1100px;margin:0 auto;padding:16px;padding-bottom:60px;}
+.card{background:#fff;border:1px solid var(--borde);border-radius:10px;padding:16px;margin-bottom:14px;}
+.card h2{font-size:15px;margin:0 0 12px;color:var(--azul);}
+.card h3{font-size:13px;margin:14px 0 8px;color:var(--gris);}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{background:var(--azul-bg);color:var(--azul);text-align:left;padding:8px;font-weight:600;position:sticky;top:0;}
+th input{font-weight:400;margin-top:4px;padding:5px 6px;font-size:11.5px;border-color:#c7d3dc;}
+td{padding:8px;border-bottom:1px solid var(--borde);vertical-align:top;}
+tr:hover td{background:#fafcfe;}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+.b-asist{background:#e8f0fe;color:var(--azul-claro);}
+.b-transito{background:#fff4e0;color:var(--naranja);}
+.b-recibido{background:#e6f7eb;color:var(--verde);}
+.b-devuelta{background:#fdeaea;color:var(--rojo);}
+.b-saldo{background:#f3e8fd;color:#7c3aed;}
+.eo-chip{display:inline-block;min-width:16px;text-align:center;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:700;margin-left:5px;vertical-align:middle;}
+.eo-P{background:#fff4e0;color:var(--naranja);}
+.eo-A{background:#e6f7eb;color:var(--verde);}
+.eo-C{background:#e8f0fe;color:var(--azul-claro);}
+.eo-N{background:#f3e8fd;color:#7c3aed;}
+button.btn{background:var(--azul-claro);color:#fff;border:none;padding:7px 13px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;}
+button.btn:hover{background:var(--azul);}
+button.btn.sec{background:#fff;color:var(--azul-claro);border:1px solid var(--azul-claro);}
+button.btn.warn{background:var(--rojo);}
+button.btn.ok{background:var(--verde);}
+button.btn:disabled{opacity:.4;cursor:not-allowed;}
+input,select,textarea{width:100%;padding:8px;border:1px solid var(--borde);border-radius:6px;font-size:13px;font-family:inherit;}
+label{font-size:12px;color:var(--gris);font-weight:600;display:block;margin:8px 0 4px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;}
+.row>div{flex:1;min-width:160px;}
+.pill-count{background:var(--azul);color:#fff;border-radius:10px;padding:0 7px;font-size:10.5px;margin-left:5px;}
+.empty{text-align:center;color:var(--gris);padding:30px 10px;font-size:13px;}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(145deg,var(--azul),#144d78);}
+.login-box{background:#fff;padding:32px;border-radius:12px;width:320px;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+.login-box h1{color:var(--azul);font-size:18px;margin:0 0 4px;}
+.login-box .sub{color:var(--gris);font-size:12px;margin-bottom:20px;}
+.login-box button{width:100%;margin-top:14px;}
+.err{color:var(--rojo);font-size:12px;margin-top:8px;}
+.file-chip{display:inline-flex;align-items:center;gap:6px;background:var(--azul-bg);border-radius:6px;padding:4px 8px;font-size:11px;margin:3px 4px 0 0;}
+.file-chip a{color:var(--azul-claro);text-decoration:none;}
+.timeline{border-left:2px solid var(--borde);margin-left:8px;padding-left:16px;}
+.tl-item{margin-bottom:16px;position:relative;}
+.tl-item::before{content:'';position:absolute;left:-21px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--azul-claro);}
+.tl-item .meta{font-size:11px;color:var(--gris);}
+.tl-item .etapa{font-weight:600;font-size:13px;color:var(--texto);}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.modal{background:#fff;border-radius:10px;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+.modal h3{margin-top:0;color:var(--azul);}
+.close-x{float:right;background:none;border:none;font-size:18px;cursor:pointer;color:var(--gris);}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--texto);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,.25);}
+.checkbox-row{display:flex;align-items:center;gap:6px;margin:6px 0;font-size:12.5px;}
+.checkbox-row input{width:auto;}
+small.hint{color:var(--gris);font-size:11px;display:block;margin-top:3px;}
+.pwd-wrap{display:flex;gap:6px;align-items:center;}
+.pwd-wrap input{flex:1;}
+.pwd-wrap button{background:none;border:1px solid var(--borde);border-radius:6px;padding:7px 10px;cursor:pointer;font-size:14px;}
+.stat{display:flex;gap:10px;flex-wrap:wrap;}
+.stat .box{flex:1;min-width:120px;background:var(--azul-bg);border-radius:8px;padding:12px;text-align:center;}
+.stat .box b{display:block;font-size:22px;color:var(--azul);}
+.stat .box span{font-size:11px;color:var(--gris);}
+@media(max-width:640px){th,td{font-size:11.5px;padding:6px;} .card{padding:12px;}}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+/* =========================================================
+   CONFIGURACIÓN — completar antes de usar
+========================================================= */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA-k7abBcLfrbGF2InIyfzjCLEZ7da3V_Y",
+  authDomain: "flujo-nv.firebaseapp.com",
+  projectId: "flujo-nv",
+  storageBucket: "flujo-nv.firebasestorage.app",
+  messagingSenderId: "883047145075",
+  appId: "1:883047145075:web:a54650896d15d469899406"
+};
+const CLOUDINARY_CLOUD_NAME = "nasqd2m5";
+const CLOUDINARY_UPLOAD_PRESET = "control_flujo_nv"; // crear preset unsigned con este nombre
+const CLOUDINARY_FOLDER = "flujo-nv";
+
+/* =========================================================
+   INIT FIREBASE
+========================================================= */
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.firestore();
+
+/* =========================================================
+   CONSTANTES DE DOMINIO
+========================================================= */
+const ROLES = {
+  admin: "Administrador",
+  asistente: "Asistente Comercial",
+  programador: "Programador de NV",
+  gestion: "Gestión Documental",
+  jefe: "Jefe de Despacho",
+  credito: "Crédito"
+};
+
+const ESTADOS = {
+  EN_ASISTENTE: "En Asistente Comercial",
+  TRANSITO_LOG: "En tránsito a Logística",
+  EN_PROGRAMADOR: "En Programador de NV",
+  EN_GESTION: "En Gestión Documental",
+  TRANSITO_JEFE: "En tránsito a Jefe de Despacho",
+  EN_JEFE: "En Jefe de Despacho",
+  DEV_ASISTENTE: "Devuelta a Asistente Comercial",
+  DEV_CREDITO: "Devuelta a Crédito",
+  SALDO: "Saldo de NV pendiente",
+  TRANSITO_SALDO: "En tránsito (Saldo NV)"
+};
+
+function saldoChip(nv){
+  return (nv && nv.esSaldoNV) ? ` <span class="badge b-saldo">SALDO NV ${nv.numero}</span>` : "";
+}
+
+function badgeClass(estado){
+  if(estado===ESTADOS.EN_ASISTENTE) return "b-asist";
+  if(estado===ESTADOS.TRANSITO_LOG||estado===ESTADOS.TRANSITO_JEFE||estado===ESTADOS.TRANSITO_SALDO) return "b-transito";
+  if(estado===ESTADOS.DEV_ASISTENTE||estado===ESTADOS.DEV_CREDITO) return "b-devuelta";
+  if(estado===ESTADOS.SALDO) return "b-saldo";
+  return "b-recibido";
+}
+
+function eoChip(estadoOrigen){
+  const c = (estadoOrigen||"").trim().toUpperCase();
+  if(!["P","A","C","N"].includes(c)) return "";
+  return `<span class="eo-chip eo-${c}">${c}</span>`;
+}
+
+/* =========================================================
+   ESTADO GLOBAL EN MEMORIA
+========================================================= */
+let SESSION = JSON.parse(localStorage.getItem("cfnv_session")||"null");
+let NVS = [];
+let MOVS = [];
+let USERS = [];
+let currentTab = "dashboard";
+let unsubNvs=null, unsubMovs=null, unsubUsers=null;
+
+function togglePass(inputId, btnEl){
+  const inp = document.getElementById(inputId);
+  if(!inp) return;
+  if(inp.type==="password"){ inp.type="text"; btnEl.textContent="🙈"; }
+  else { inp.type="password"; btnEl.textContent="👁️"; }
+}
+
+function toast(msg, isErr){
+  const el = document.createElement("div");
+  el.className="toast";
+  if(isErr) el.style.background="#c0392b";
+  el.textContent = msg;
+  document.getElementById("toast-root").appendChild(el);
+  setTimeout(()=>el.remove(), 3200);
+}
+
+function fmtDT(ts){
+  if(!ts) return "—";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString("es-CL")+" "+d.toLocaleTimeString("es-CL",{hour:'2-digit',minute:'2-digit'});
+}
+
+/* =========================================================
+   LOGIN
+========================================================= */
+async function attemptLogin(usuario, clave){
+  const snap = await db.collection("usuarios").doc(usuario.trim().toLowerCase()).get();
+  if(!snap.exists) return {ok:false, msg:"Usuario no existe"};
+  const u = snap.data();
+  if(u.activo===false) return {ok:false, msg:"Usuario deshabilitado"};
+  if(u.clave !== clave) return {ok:false, msg:"Clave incorrecta"};
+  SESSION = {usuario: usuario.trim().toLowerCase(), nombre: u.nombre, rol: u.rol};
+  localStorage.setItem("cfnv_session", JSON.stringify(SESSION));
+  return {ok:true};
+}
+
+function renderLogin(){
+  const app = document.getElementById("app");
+  app.innerHTML = `
+  <div class="login-wrap">
+    <div class="login-box">
+      <h1>APP Flujo NV</h1>
+      <div class="sub">Petroflex — trazabilidad de Notas de Venta</div>
+      <label>Usuario</label>
+      <input id="li-user" placeholder="usuario">
+      <label>Clave</label>
+      <div class="pwd-wrap">
+        <input id="li-pass" type="password" placeholder="••••••">
+        <button type="button" onclick="togglePass('li-pass', this)">👁️</button>
+      </div>
+      <button class="btn" id="li-btn" style="margin-top:16px">Ingresar</button>
+      <div class="err" id="li-err"></div>
+    </div>
+  </div>`;
+  document.getElementById("li-btn").onclick = doLogin;
+  document.getElementById("li-pass").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+}
+
+function renderSetupAdmin(){
+  const app = document.getElementById("app");
+  app.innerHTML = `
+  <div class="login-wrap">
+    <div class="login-box">
+      <h1>Primer arranque</h1>
+      <div class="sub">Aún no hay usuarios creados. Crea la cuenta de Administrador para empezar.</div>
+      <label>Usuario (login)</label>
+      <input id="su-user" value="admin">
+      <label>Nombre</label>
+      <input id="su-nombre" placeholder="Tu nombre">
+      <label>Clave</label>
+      <div class="pwd-wrap">
+        <input id="su-pass" type="password" value="petroflex1">
+        <button type="button" onclick="togglePass('su-pass', this)">👁️</button>
+      </div>
+      <button class="btn" id="su-btn" style="margin-top:16px">Crear administrador e ingresar</button>
+      <div class="err" id="su-err"></div>
+    </div>
+  </div>`;
+  document.getElementById("su-btn").onclick = async ()=>{
+    const usuario = document.getElementById("su-user").value.trim().toLowerCase();
+    const nombre = document.getElementById("su-nombre").value.trim();
+    const clave = document.getElementById("su-pass").value;
+    const errBox = document.getElementById("su-err");
+    if(!usuario || !clave){ errBox.textContent = "Usuario y clave son obligatorios"; return; }
+    errBox.textContent = "Creando...";
+    try{
+      await db.collection("usuarios").doc(usuario).set({
+        nombre: nombre || "Administrador", clave, rol: "admin", activo: true
+      });
+      SESSION = {usuario, nombre: nombre || "Administrador", rol: "admin"};
+      localStorage.setItem("cfnv_session", JSON.stringify(SESSION));
+      boot();
+    }catch(e){
+      errBox.textContent = "Error de conexión: "+e.message;
+    }
+  };
+}
+async function doLogin(){
+  const u = document.getElementById("li-user").value;
+  const p = document.getElementById("li-pass").value;
+  const errBox = document.getElementById("li-err");
+  errBox.textContent = "Verificando...";
+  try{
+    const r = await attemptLogin(u,p);
+    if(!r.ok){ errBox.textContent = r.msg; return; }
+    boot();
+  }catch(e){
+    errBox.textContent = "Error de conexión: "+e.message;
+  }
+}
+function logout(){
+  localStorage.removeItem("cfnv_session");
+  SESSION = null;
+  if(unsubNvs) unsubNvs(); if(unsubMovs) unsubMovs(); if(unsubUsers) unsubUsers();
+  renderLogin();
+}
+
+/* =========================================================
+   CARGA EN TIEMPO REAL
+========================================================= */
+function startListeners(){
+  unsubNvs = db.collection("nvs").onSnapshot(snap=>{
+    NVS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    render();
+  });
+  unsubMovs = db.collection("movimientos").orderBy("fechaEnvio","desc").onSnapshot(snap=>{
+    MOVS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    render();
+  });
+  if(SESSION.rol==="admin"){
+    unsubUsers = db.collection("usuarios").onSnapshot(snap=>{
+      USERS = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      render();
+    });
+  }
+}
+
+/* =========================================================
+   SUBIDA DE ARCHIVOS A CLOUDINARY
+========================================================= */
+async function uploadFile(file){
+  const isImg = file.type.startsWith("image/");
+  const endpoint = isImg
+    ? `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
+    : `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`;
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  fd.append("folder", CLOUDINARY_FOLDER);
+  const res = await fetch(endpoint, {method:"POST", body:fd});
+  if(!res.ok) throw new Error("Fallo al subir "+file.name);
+  const data = await res.json();
+  return {url:data.secure_url, nombre:file.name, tipo:file.type};
+}
+
+/* =========================================================
+   LÓGICA DE NEGOCIO — ENVÍOS / RECEPCIONES
+========================================================= */
+async function registrarEnvio({nvNumero, etapa, destinoRol, adjuntos, comentario, esSaldo, cantidadSaldo}){
+  const mov = {
+    nvNumero, etapa, destinoRol,
+    origenRol: SESSION.rol,
+    usuarioEnvia: SESSION.usuario, nombreEnvia: SESSION.nombre,
+    fechaEnvio: firebase.firestore.FieldValue.serverTimestamp(),
+    usuarioRecibe: null, nombreRecibe: null, fechaRecepcion: null,
+    estado: "pendiente",
+    adjuntos: adjuntos||[],
+    comentario: comentario||"",
+    esSaldo: !!esSaldo,
+    cantidadSaldo: cantidadSaldo||null
+  };
+  await db.collection("movimientos").add(mov);
+  let nuevoEstadoNV;
+  let camposExtra = {};
+  if(etapa==="ac_logistica") nuevoEstadoNV = ESTADOS.TRANSITO_LOG;
+  else if(etapa==="prog_jefe") nuevoEstadoNV = ESTADOS.TRANSITO_JEFE;
+  else if(etapa==="devolucion") nuevoEstadoNV = destinoRol==="credito" ? ESTADOS.DEV_CREDITO : ESTADOS.DEV_ASISTENTE;
+  else if(etapa==="saldo_devolucion") nuevoEstadoNV = ESTADOS.TRANSITO_SALDO;
+  else if(etapa==="saldo_reenvio"){ nuevoEstadoNV = ESTADOS.TRANSITO_SALDO; camposExtra = { saldoPendienteReenvio: false }; }
+  if(nuevoEstadoNV){
+    await db.collection("nvs").doc(nvNumero).update({estado: nuevoEstadoNV, ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp(), ...camposExtra});
+  }
+}
+
+async function revertirEnvio(movId, nvNumero, etapa, origenRol){
+  if(!confirm(`¿Deshacer este envío de la NV ${nvNumero}? Quedará marcado como cancelado y la NV vuelve a su estado anterior, disponible para que quien la envió la corrija.`)) return;
+  await db.collection("movimientos").doc(movId).update({
+    estado: "cancelado",
+    canceladoPor: SESSION.usuario, nombreCancela: SESSION.nombre,
+    fechaCancelacion: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  let estadoPrevio;
+  let camposExtra = {};
+  if(etapa==="ac_logistica") estadoPrevio = ESTADOS.EN_ASISTENTE;
+  else if(etapa==="prog_jefe") estadoPrevio = ESTADOS.EN_PROGRAMADOR;
+  else if(etapa==="devolucion") estadoPrevio = origenRol==="gestion" ? ESTADOS.EN_GESTION : ESTADOS.EN_PROGRAMADOR;
+  else if(etapa==="saldo_devolucion") estadoPrevio = origenRol==="jefe" ? ESTADOS.EN_JEFE : ESTADOS.EN_GESTION;
+  else if(etapa==="saldo_reenvio"){ estadoPrevio = ESTADOS.EN_PROGRAMADOR; camposExtra = { saldoPendienteReenvio: true }; }
+  if(estadoPrevio){
+    await db.collection("nvs").doc(nvNumero).update({estado: estadoPrevio, ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp(), ...camposExtra});
+  }
+  toast("Envío deshecho, la NV volvió a su estado anterior");
+}
+
+async function registrarRecepcion(movId, nvNumero, etapa, destinoRolActual, silencioso){
+  await db.collection("movimientos").doc(movId).update({
+    usuarioRecibe: SESSION.usuario, nombreRecibe: SESSION.nombre,
+    fechaRecepcion: firebase.firestore.FieldValue.serverTimestamp(),
+    estado: "recibido"
+  });
+  let nuevoEstadoNV;
+  let camposExtra = {};
+  if(etapa==="ac_logistica") nuevoEstadoNV = destinoRolActual==="programador" ? ESTADOS.EN_PROGRAMADOR : ESTADOS.EN_GESTION;
+  else if(etapa==="prog_jefe") nuevoEstadoNV = ESTADOS.EN_JEFE;
+  else if(etapa==="saldo_devolucion"){ nuevoEstadoNV = ESTADOS.EN_PROGRAMADOR; camposExtra = { esSaldoNV: true, saldoPendienteReenvio: true }; }
+  else if(etapa==="saldo_reenvio") nuevoEstadoNV = destinoRolActual==="jefe" ? ESTADOS.EN_JEFE : ESTADOS.EN_GESTION;
+  if(nuevoEstadoNV){
+    await db.collection("nvs").doc(nvNumero).update({estado: nuevoEstadoNV, ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp(), ...camposExtra});
+  }
+  if(!silencioso) toast("Recepción confirmada");
+}
+
+/* =========================================================
+   ALTA DE NV — EXCEL (upsert, nunca borra historial)
+========================================================= */
+async function importarExcelNV(file){
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, {type:"array"});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {defval:""});
+  if(!rows.length){ toast("El Excel no tiene filas", true); return; }
+
+  // El archivo trae una fila por línea de producto — agrupamos por N° de NV antes de escribir
+  const grupos = new Map();
+  let filasSinNumero = 0;
+  for(const r of rows){
+    const numero = String(r["Numero_NVenta"] ?? r["NV"] ?? r["Nota de Venta"] ?? r["numero"] ?? "").trim();
+    if(!numero || numero==="undefined"){ filasSinNumero++; continue; }
+    const tipoCol = String(r["Tipo"]||"").trim().toUpperCase();
+    const retiraCol = String(r["Retira"]||"").trim().toLowerCase();
+    const tipo = tipoCol === "R" || retiraCol === "si" ? "Retira Cliente" : "Por Despachar";
+    const saldoLinea = Number(r["Saldo$"]) || 0;
+    const retenida = String(r["Retenida_Credito"]||"").trim().toLowerCase() === "si";
+    if(!grupos.has(numero)){
+      grupos.set(numero, {
+        numero, tipo,
+        cliente: String(r["NomAux"]||r["Cliente"]||"").trim(),
+        vendedor: String(r["VenDes"]||r["Vendedor"]||"").trim(),
+        fechaEmision: String(r["fecha_emis"]||"").trim(),
+        estadoOrigen: String(r["nvEstado"]||"").trim().toUpperCase(),
+        saldo: 0,
+        retenidaCredito: false
+      });
+    }
+    const g = grupos.get(numero);
+    g.saldo += saldoLinea;
+    if(retenida) g.retenidaCredito = true;
+  }
+
+  if(grupos.size===0){ toast("No se encontró ninguna fila con N° de NV válido", true); return; }
+
+  let creadas=0, actualizadas=0, omitidas=0;
+  const items = Array.from(grupos.values());
+  const batchSize=400;
+  for(let i=0;i<items.length;i+=batchSize){
+    const chunk = items.slice(i,i+batchSize);
+    const batch = db.batch();
+    for(const g of chunk){
+      const ref = db.collection("nvs").doc(g.numero);
+      const existing = NVS.find(n=>n.id===g.numero);
+      const base = {
+        numero: g.numero, tipo: g.tipo, cliente: g.cliente, vendedor: g.vendedor,
+        fechaEmision: g.fechaEmision, estadoOrigen: g.estadoOrigen, saldo: g.saldo, retenidaCredito: g.retenidaCredito,
+        origen: "excel",
+        ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if(existing){
+        // upsert: solo actualiza datos de origen, jamás toca 'estado' (lo gobierna el flujo de movimientos)
+        batch.set(ref, base, {merge:true});
+        actualizadas++;
+      } else if(["C","N"].includes(g.estadoOrigen)){
+        // NV nueva pero en estado Cerrada/Nueva: no se incorpora al flujo todavía
+        omitidas++;
+      } else {
+        batch.set(ref, {...base, asistente: "", estado: ESTADOS.EN_ASISTENTE, fechaAlta: firebase.firestore.FieldValue.serverTimestamp()});
+        creadas++;
+      }
+    }
+    await batch.commit();
+  }
+  toast(`Import OK — ${creadas} nuevas, ${actualizadas} actualizadas, ${omitidas} omitidas (estado C/N)${filasSinNumero?`, ${filasSinNumero} filas sin N° NV`:""}`);
+}
+
+async function altaManualNV(data){
+  const ref = db.collection("nvs").doc(data.numero);
+  const existing = NVS.find(n=>n.id===data.numero);
+  if(existing){ toast("Esa NV ya existe", true); return; }
+  await ref.set({
+    numero: data.numero, tipo: data.tipo, cliente: data.cliente,
+    vendedor: data.vendedor||"", asistente: SESSION.nombre, saldo: Number(data.saldo)||0,
+    origen: "manual", estado: ESTADOS.EN_ASISTENTE,
+    fechaAlta: firebase.firestore.FieldValue.serverTimestamp(),
+    ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  toast("NV creada");
+}
+
+/* =========================================================
+   RENDER — SHELL
+========================================================= */
+function tabsForRole(rol){
+  const base = [{id:"dashboard",label:"Dashboard"}];
+  if(rol==="admin"||rol==="asistente") base.push({id:"alta",label:"Alta de NV"});
+  base.push({id:"por-enviar",label:"Por Enviar"});
+  base.push({id:"pendientes",label:"Pendientes de Recepción"});
+  if(["admin","programador","gestion","jefe"].includes(rol)) base.push({id:"devolucion",label:"Devolución / Saldo"});
+  base.push({id:"linea-tiempo",label:"Línea de Tiempo"});
+  base.push({id:"listado",label:"Listado NV"});
+  if(rol==="admin") base.push({id:"maestro",label:"Maestro"});
+  return base;
+}
+
+function render(){
+  if(!SESSION){ renderLogin(); return; }
+  const app = document.getElementById("app");
+  const tabs = tabsForRole(SESSION.rol);
+  if(!tabs.find(t=>t.id===currentTab)) currentTab = "dashboard";
+  app.innerHTML = `
+    <header>
+      <div>
+        <h1>APP Flujo NV</h1>
+        <div class="sub">Petroflex — trazabilidad de Notas de Venta</div>
+      </div>
+      <div id="userbox">
+        ${SESSION.nombre} <br><span style="opacity:.75">${ROLES[SESSION.rol]}</span>
+        <button onclick="logout()">Salir</button>
+      </div>
+    </header>
+    <nav>${tabs.map(t=>`<button class="${t.id===currentTab?'active':''}" onclick="setTab('${t.id}')">${t.label}</button>`).join("")}</nav>
+    <main id="main"></main>
+  `;
+  renderTab(currentTab);
+}
+function setTab(id){ currentTab=id; render(); }
+
+function renderTab(id){
+  const main = document.getElementById("main");
+  if(id==="dashboard") return renderDashboard(main);
+  if(id==="alta") return renderAlta(main);
+  if(id==="por-enviar") return renderPorEnviar(main);
+  if(id==="pendientes") return renderPendientes(main);
+  if(id==="devolucion") return renderDevolucion(main);
+  if(id==="linea-tiempo") return renderLineaTiempo(main);
+  if(id==="listado") return renderListado(main);
+  if(id==="maestro") return renderMaestro(main);
+}
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+function renderDashboard(main){
+  const total = NVS.length;
+  const pendRecep = MOVS.filter(m=>m.estado==="pendiente").length;
+  const enJefe = NVS.filter(n=>n.estado===ESTADOS.EN_JEFE).length;
+  const saldos = NVS.filter(n=>n.estado===ESTADOS.SALDO || n.estado===ESTADOS.DEV_ASISTENTE || n.estado===ESTADOS.DEV_CREDITO).length;
+  const ahora = Date.now();
+  const atascadas = MOVS.filter(m=>{
+    if(m.estado!=="pendiente"||!m.fechaEnvio) return false;
+    const t = m.fechaEnvio.toDate ? m.fechaEnvio.toDate().getTime() : ahora;
+    return (ahora - t) > 1000*60*60*24; // más de 24h sin recepción
+  });
+
+  main.innerHTML = `
+  <div class="card">
+    <h2>Resumen</h2>
+    <div class="stat">
+      <div class="box"><b>${total}</b><span>NV en base</span></div>
+      <div class="box"><b>${pendRecep}</b><span>Movimientos pendientes de recepción</span></div>
+      <div class="box"><b>${enJefe}</b><span>NV en Jefe de Despacho</span></div>
+      <div class="box"><b>${saldos}</b><span>Saldos / Devoluciones</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>⚠️ Envíos hace más de 24h sin confirmar recepción <span class="pill-count">${atascadas.length}</span></h2>
+    ${atascadas.length===0 ? `<div class="empty">Sin envíos atascados.</div>` : `
+    <table><thead><tr><th>NV</th><th>Etapa</th><th>Envió</th><th>Fecha envío</th><th>Destino</th></tr></thead>
+    <tbody>${atascadas.map(m=>{
+      const nv = NVS.find(n=>n.numero===m.nvNumero);
+      return `<tr>
+      <td>${m.nvNumero}${eoChip(nv&&nv.estadoOrigen)}${saldoChip(nv)}</td><td>${etapaLabel(m.etapa)}</td><td>${m.nombreEnvia}</td><td>${fmtDT(m.fechaEnvio)}</td><td>${ROLES[m.destinoRol]||m.destinoRol}</td>
+    </tr>`;
+    }).join("")}</tbody></table>`}
+  </div>
+  <div class="card">
+    <h2>NV por estado</h2>
+    <table><thead><tr><th>Estado</th><th>Cantidad</th></tr></thead><tbody>
+    ${Object.values(ESTADOS).map(e=>{
+      const c = NVS.filter(n=>n.estado===e).length;
+      return c ? `<tr><td><span class="badge ${badgeClass(e)}">${e}</span></td><td>${c}</td></tr>` : "";
+    }).join("")}
+    </tbody></table>
+  </div>`;
+}
+
+function etapaLabel(etapa){
+  if(etapa==="ac_logistica") return "Asistente Comercial → Logística";
+  if(etapa==="prog_jefe") return "Programador → Jefe de Despacho";
+  if(etapa==="devolucion") return "Devolución";
+  if(etapa==="saldo_devolucion") return "Devolución de NV para emisión de Saldo";
+  if(etapa==="saldo_reenvio") return "Reenvío de NV (Saldo) tras programación";
+  return etapa;
+}
+
+/* =========================================================
+   ALTA DE NV
+========================================================= */
+function renderAlta(main){
+  main.innerHTML = `
+  <div class="card">
+    <h2>Importar NV desde Excel</h2>
+    <small class="hint">Archivo esperado: VISTA_PARA_REVISION_FACTOR.xlsx (columnas Numero_NVenta, NomAux, VenDes, Tipo D/R, Saldo$, nvEstado). Trae varias filas por NV (una por línea de producto) — la app las agrupa automáticamente en un solo registro por NV. Las NV nuevas en estado C o N (sistema origen) no se incorporan al flujo; si una NV ya existente cambia a C o N, se sigue actualizando y verás su estado en Listado de NV. Reimportar nunca borra el historial de envíos/recepciones ya registrado.</small>
+    <input type="file" id="alta-excel" accept=".xlsx,.xls,.csv" style="margin-top:10px">
+    <button class="btn" style="margin-top:10px" id="alta-excel-btn">Importar</button>
+  </div>
+  <div class="card">
+    <h2>Alta manual de NV</h2>
+    <div class="row">
+      <div><label>N° NV</label><input id="am-numero"></div>
+      <div><label>Tipo</label>
+        <select id="am-tipo"><option>Por Despachar</option><option>Retira Cliente</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>Cliente</label><input id="am-cliente"></div>
+      <div><label>Vendedor</label><input id="am-vendedor"></div>
+    </div>
+    <label>Saldo / monto (opcional)</label>
+    <input id="am-saldo" type="number">
+    <button class="btn" style="margin-top:12px" id="am-btn">Crear NV</button>
+  </div>`;
+  document.getElementById("alta-excel-btn").onclick = async ()=>{
+    const f = document.getElementById("alta-excel").files[0];
+    if(!f){ toast("Selecciona un archivo", true); return; }
+    try{ await importarExcelNV(f); }catch(e){ toast("Error: "+e.message, true); }
+  };
+  document.getElementById("am-btn").onclick = async ()=>{
+    const numero = document.getElementById("am-numero").value.trim();
+    if(!numero){ toast("Falta el N° de NV", true); return; }
+    await altaManualNV({
+      numero, tipo: document.getElementById("am-tipo").value,
+      cliente: document.getElementById("am-cliente").value,
+      vendedor: document.getElementById("am-vendedor").value,
+      saldo: document.getElementById("am-saldo").value
+    });
+    document.getElementById("am-numero").value="";
+    document.getElementById("am-cliente").value="";
+    document.getElementById("am-vendedor").value="";
+    document.getElementById("am-saldo").value="";
+  };
+}
+
+/* =========================================================
+   POR ENVIAR (según rol)
+========================================================= */
+function renderPorEnviar(main){
+  const rol = SESSION.rol;
+  let candidatas = [];
+  let etapa, destinoDefault;
+
+  if(rol==="asistente"||rol==="admin"){
+    candidatas = NVS.filter(n=>n.estado===ESTADOS.EN_ASISTENTE);
+    etapa = "ac_logistica";
+  } else if(rol==="programador"){
+    candidatas = NVS.filter(n=>n.estado===ESTADOS.EN_PROGRAMADOR && !n.saldoPendienteReenvio);
+    etapa = "prog_jefe";
+    destinoDefault = "jefe";
+  }
+
+  if(!etapa){
+    main.innerHTML = `<div class="card"><div class="empty">Tu rol no tiene NV para enviar en esta etapa.</div></div>`;
+    return;
+  }
+
+  candidatas = candidatas.filter(n=>["P","A"].includes((n.estadoOrigen||"").toUpperCase()));
+  candidatas = candidatas.slice().sort((a,b)=> Number(b.numero) - Number(a.numero));
+  const seleccion = new Set();
+
+  main.innerHTML = `
+  <div class="card">
+    <h2>NV listas para enviar <span class="pill-count" id="pe-count">${candidatas.length}</span></h2>
+    <div class="row" style="align-items:center;margin:8px 0">
+      <button class="btn" id="pe-bulk-btn" disabled>Enviar seleccionadas (<span id="pe-sel-count">0</span>)</button>
+    </div>
+    <table><thead><tr>
+      <th><input type="checkbox" id="pe-selall"></th>
+      <th>NV<br><input class="pe-f" data-k="nv" placeholder="filtrar..."></th>
+      <th>Cliente<br><input class="pe-f" data-k="cliente" placeholder="filtrar..."></th>
+      <th>Vendedor<br><input class="pe-f" data-k="vendedor" placeholder="filtrar..."></th>
+      <th>F. Emisión<br><input class="pe-f" data-k="fecha" placeholder="filtrar..."></th>
+      <th>Destino<br><input class="pe-f" data-k="destino" placeholder="filtrar..."></th>
+      <th>Tipo<br><input class="pe-f" data-k="tipo" placeholder="filtrar..."></th>
+      <th></th>
+    </tr></thead>
+    <tbody id="pe-tbody"></tbody></table>
+    <div id="pe-empty" class="empty" style="display:none">No hay NV pendientes de envío.</div>
+  </div>`;
+
+  function actualizarBulkBtn(){
+    document.getElementById("pe-sel-count").textContent = seleccion.size;
+    document.getElementById("pe-bulk-btn").disabled = seleccion.size===0;
+  }
+
+  function pintarPorEnviar(){
+    const filtros = {};
+    document.querySelectorAll(".pe-f").forEach(inp=> filtros[inp.dataset.k] = inp.value.trim().toLowerCase());
+    const filtradas = candidatas.filter(n=>{
+      const destino = etapa==="ac_logistica" ? (n.tipo==="Retira Cliente"?"gestion":"programador") : "jefe";
+      if(filtros.nv && !String(n.numero).toLowerCase().includes(filtros.nv)) return false;
+      if(filtros.cliente && !(n.cliente||"").toLowerCase().includes(filtros.cliente)) return false;
+      if(filtros.vendedor && !(n.vendedor||"").toLowerCase().includes(filtros.vendedor)) return false;
+      if(filtros.fecha && !(n.fechaEmision||"").toLowerCase().includes(filtros.fecha)) return false;
+      if(filtros.destino && !ROLES[destino].toLowerCase().includes(filtros.destino)) return false;
+      if(filtros.tipo && !(n.tipo||"").toLowerCase().includes(filtros.tipo)) return false;
+      return true;
+    });
+    document.getElementById("pe-count").textContent = filtradas.length;
+    document.getElementById("pe-empty").style.display = filtradas.length===0 ? "block":"none";
+    document.getElementById("pe-tbody").innerHTML = filtradas.map(n=>{
+      const destino = etapa==="ac_logistica" ? (n.tipo==="Retira Cliente"?"gestion":"programador") : "jefe";
+      return `<tr>
+        <td><input type="checkbox" class="pe-sel" value="${n.id}" ${seleccion.has(n.id)?"checked":""}></td>
+        <td>${n.numero}${eoChip(n.estadoOrigen)}</td><td>${n.cliente||"—"}</td><td>${n.vendedor||"—"}</td><td>${n.fechaEmision||"—"}</td>
+        <td>${ROLES[destino]}</td><td>${n.tipo||"—"}</td>
+        <td><button class="btn" onclick="openEnvioModal('${n.id}','${etapa}','${destino}')">Enviar</button></td>
+      </tr>`;
+    }).join("");
+    document.querySelectorAll(".pe-sel").forEach(cb=>{
+      cb.addEventListener("change", ()=>{
+        if(cb.checked) seleccion.add(cb.value); else seleccion.delete(cb.value);
+        document.getElementById("pe-selall").checked = document.querySelectorAll(".pe-sel").length>0 && document.querySelectorAll(".pe-sel:checked").length===document.querySelectorAll(".pe-sel").length;
+        actualizarBulkBtn();
+      });
+    });
+    document.getElementById("pe-selall").checked = filtradas.length>0 && filtradas.every(n=>seleccion.has(n.id));
+    actualizarBulkBtn();
+  }
+  document.querySelectorAll(".pe-f").forEach(inp=> inp.addEventListener("input", pintarPorEnviar));
+  document.getElementById("pe-selall").addEventListener("change", (e)=>{
+    document.querySelectorAll(".pe-sel").forEach(cb=>{
+      cb.checked = e.target.checked;
+      if(e.target.checked) seleccion.add(cb.value); else seleccion.delete(cb.value);
+    });
+    actualizarBulkBtn();
+  });
+  document.getElementById("pe-bulk-btn").onclick = ()=>{
+    openEnvioModalBulk(Array.from(seleccion), etapa);
+  };
+  pintarPorEnviar();
+
+  if(rol==="programador"){
+    const contSaldo = document.createElement("div");
+    main.appendChild(contSaldo);
+    renderSaldosPorReenviar(contSaldo);
+  }
+}
+
+function renderSaldosPorReenviar(container){
+  let saldos = NVS.filter(n=>n.saldoPendienteReenvio===true);
+  saldos = saldos.filter(n=>["P","A"].includes((n.estadoOrigen||"").toUpperCase()));
+  saldos = saldos.slice().sort((a,b)=> Number(b.numero) - Number(a.numero));
+
+  function origenSaldo(nv){
+    const movsNV = MOVS.filter(m=>m.nvNumero===nv.numero && m.etapa==="saldo_devolucion" && m.estado==="recibido");
+    movsNV.sort((a,b)=>{
+      const ta = a.fechaRecepcion?.toDate ? a.fechaRecepcion.toDate().getTime():0;
+      const tb = b.fechaRecepcion?.toDate ? b.fechaRecepcion.toDate().getTime():0;
+      return tb-ta;
+    });
+    return movsNV.length ? movsNV[0].origenRol : "jefe";
+  }
+
+  container.innerHTML = `
+  <div class="card">
+    <h2>Saldos de NV por reenviar <span class="pill-count">${saldos.length}</span></h2>
+    <small class="hint">NV devueltas por Gestión Documental o Jefe de Despacho para emisión de Saldo, ya programadas y listas para reenviar de vuelta a quien las devolvió.</small>
+    ${saldos.length===0 ? `<div class="empty">No hay Saldos pendientes de reenviar.</div>` : `
+    <table style="margin-top:10px"><thead><tr><th>NV</th><th>Cliente</th><th>Vendedor</th><th>F. Emisión</th><th>Destino</th><th></th></tr></thead>
+    <tbody>${saldos.map(n=>{
+      const destino = origenSaldo(n);
+      return `<tr>
+        <td>${n.numero}${eoChip(n.estadoOrigen)}${saldoChip(n)}</td><td>${n.cliente||"—"}</td><td>${n.vendedor||"—"}</td><td>${n.fechaEmision||"—"}</td>
+        <td>${ROLES[destino]}</td>
+        <td><button class="btn" onclick="openEnvioModal('${n.id}','saldo_reenvio','${destino}')">Enviar</button></td>
+      </tr>`;
+    }).join("")}</tbody></table>`}
+  </div>`;
+}
+
+function openEnvioModalBulk(nvIds, etapa){
+  if(!nvIds.length) return;
+  const items = nvIds.map(id=>NVS.find(n=>n.id===id)).filter(Boolean);
+  const permiteAdjuntos = etapa==="ac_logistica";
+  const root = document.getElementById("modal-root");
+  root.innerHTML = `
+  <div class="modal-bg" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <button class="close-x" onclick="closeModal()">✕</button>
+      <h3>Enviar ${items.length} NV seleccionadas</h3>
+      <p style="font-size:12.5px;color:var(--gris)">${items.map(n=>n.numero).join(", ")}</p>
+      ${permiteAdjuntos ? `
+      <label>Adjuntar hasta 3 archivos (se aplican a todas las NV del lote)</label>
+      <input type="file" id="env-files" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls">
+      <small class="hint">Se subirán a Cloudinary. Máximo 3 archivos.</small>` : ""}
+      <label>Comentario (opcional, se aplica a todas)</label>
+      <textarea id="env-comentario" rows="2"></textarea>
+      <button class="btn" style="margin-top:14px;width:100%" id="env-confirmar">Confirmar envío masivo</button>
+      <div class="err" id="env-err"></div>
+    </div>
+  </div>`;
+  document.getElementById("env-confirmar").onclick = async ()=>{
+    const btn = document.getElementById("env-confirmar");
+    const errBox = document.getElementById("env-err");
+    btn.disabled = true;
+    try{
+      let adjuntos = [];
+      const filesInput = document.getElementById("env-files");
+      if(filesInput && filesInput.files.length){
+        if(filesInput.files.length>3){ throw new Error("Máximo 3 archivos"); }
+        btn.textContent = "Subiendo archivos...";
+        for(const f of filesInput.files){
+          adjuntos.push(await uploadFile(f));
+        }
+      }
+      const comentario = document.getElementById("env-comentario").value;
+      let hechas=0;
+      for(const nv of items){
+        btn.textContent = `Enviando ${hechas+1}/${items.length}...`;
+        const destinoRol = etapa==="ac_logistica" ? (nv.tipo==="Retira Cliente"?"gestion":"programador") : "jefe";
+        await registrarEnvio({nvNumero: nv.numero, etapa, destinoRol, adjuntos, comentario});
+        hechas++;
+      }
+      closeModal();
+      toast(`${hechas} NV enviadas`);
+    }catch(e){
+      errBox.textContent = "Error: "+e.message;
+      btn.disabled=false; btn.textContent="Confirmar envío masivo";
+    }
+  };
+}
+
+function openEnvioModal(nvId, etapa, destinoRol){
+  const nv = NVS.find(n=>n.id===nvId);
+  const root = document.getElementById("modal-root");
+  const permiteAdjuntos = etapa==="ac_logistica";
+  root.innerHTML = `
+  <div class="modal-bg" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <button class="close-x" onclick="closeModal()">✕</button>
+      <h3>Enviar NV ${nv.numero}</h3>
+      <p style="font-size:12.5px;color:var(--gris)">Destino: <b>${ROLES[destinoRol]}</b></p>
+      ${permiteAdjuntos ? `
+      <label>Adjuntar hasta 3 archivos (PDF, imagen o Excel)</label>
+      <input type="file" id="env-files" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls">
+      <small class="hint">Se subirán a Cloudinary. Máximo 3 archivos.</small>` : ""}
+      <label>Comentario (opcional)</label>
+      <textarea id="env-comentario" rows="2"></textarea>
+      <button class="btn" style="margin-top:14px;width:100%" id="env-confirmar">Confirmar envío</button>
+      <div class="err" id="env-err"></div>
+    </div>
+  </div>`;
+  document.getElementById("env-confirmar").onclick = async ()=>{
+    const btn = document.getElementById("env-confirmar");
+    const errBox = document.getElementById("env-err");
+    btn.disabled = true; btn.textContent = "Enviando...";
+    try{
+      let adjuntos = [];
+      const filesInput = document.getElementById("env-files");
+      if(filesInput && filesInput.files.length){
+        if(filesInput.files.length>3){ throw new Error("Máximo 3 archivos"); }
+        for(const f of filesInput.files){
+          adjuntos.push(await uploadFile(f));
+        }
+      }
+      await registrarEnvio({
+        nvNumero: nv.numero, etapa, destinoRol,
+        adjuntos, comentario: document.getElementById("env-comentario").value
+      });
+      closeModal();
+      toast("Envío registrado");
+    }catch(e){
+      errBox.textContent = "Error: "+e.message;
+      btn.disabled=false; btn.textContent="Confirmar envío";
+    }
+  };
+}
+function closeModal(){ document.getElementById("modal-root").innerHTML=""; }
+
+/* =========================================================
+   PENDIENTES DE RECEPCIÓN (según rol)
+========================================================= */
+function renderPendientes(main){
+  const rol = SESSION.rol;
+  let pendientes = [];
+  if(rol==="admin"){
+    pendientes = MOVS.filter(m=>m.estado==="pendiente");
+  } else {
+    pendientes = MOVS.filter(m=>m.estado==="pendiente" && m.destinoRol===rol);
+  }
+  pendientes = pendientes.filter(m=>{
+    const nv = NVS.find(n=>n.numero===m.nvNumero);
+    return nv && ["P","A"].includes((nv.estadoOrigen||"").toUpperCase());
+  });
+  const seleccion = new Set();
+
+  main.innerHTML = `
+  <div class="card">
+    <h2>Pendientes de recepción <span class="pill-count" id="pd-count">${pendientes.length}</span></h2>
+    <div class="row" style="align-items:center;margin:8px 0">
+      <button class="btn ok" id="pd-bulk-btn" disabled>Recibir seleccionadas (<span id="pd-sel-count">0</span>)</button>
+    </div>
+    <table><thead><tr>
+      <th><input type="checkbox" id="pd-selall"></th>
+      <th>NV<br><input class="pd-f" data-k="nv" placeholder="filtrar..."></th>
+      <th>Tipo<br><input class="pd-f" data-k="tipo" placeholder="filtrar..."></th>
+      <th>Etapa<br><input class="pd-f" data-k="etapa" placeholder="filtrar..."></th>
+      <th>Envió<br><input class="pd-f" data-k="envia" placeholder="filtrar..."></th>
+      <th>Fecha envío<br><input class="pd-f" data-k="fecha" placeholder="filtrar..."></th>
+      <th>Adjuntos</th>
+      <th></th>
+    </tr></thead>
+    <tbody id="pd-tbody"></tbody></table>
+    <div id="pd-empty" class="empty" style="display:none">No hay envíos pendientes de recepción.</div>
+  </div>`;
+
+  function actualizarBulkBtn(){
+    document.getElementById("pd-sel-count").textContent = seleccion.size;
+    document.getElementById("pd-bulk-btn").disabled = seleccion.size===0;
+  }
+
+  function pintarPendientes(){
+    const filtros = {};
+    document.querySelectorAll(".pd-f").forEach(inp=> filtros[inp.dataset.k] = inp.value.trim().toLowerCase());
+    const filtradas = pendientes.filter(m=>{
+      if(filtros.nv && !String(m.nvNumero).toLowerCase().includes(filtros.nv)) return false;
+      if(filtros.etapa && !etapaLabel(m.etapa).toLowerCase().includes(filtros.etapa)) return false;
+      if(filtros.envia && !(m.nombreEnvia||"").toLowerCase().includes(filtros.envia)) return false;
+      if(filtros.fecha && !fmtDT(m.fechaEnvio).toLowerCase().includes(filtros.fecha)) return false;
+      if(filtros.tipo){
+        const nv = NVS.find(n=>n.numero===m.nvNumero);
+        if(!nv || !(nv.tipo||"").toLowerCase().includes(filtros.tipo)) return false;
+      }
+      return true;
+    });
+    document.getElementById("pd-count").textContent = filtradas.length;
+    document.getElementById("pd-empty").style.display = filtradas.length===0 ? "block":"none";
+    document.getElementById("pd-tbody").innerHTML = filtradas.map(m=>{
+      const nv = NVS.find(n=>n.numero===m.nvNumero);
+      return `<tr>
+      <td><input type="checkbox" class="pd-sel" value="${m.id}" ${seleccion.has(m.id)?"checked":""}></td>
+      <td>${m.nvNumero}${eoChip(nv&&nv.estadoOrigen)}${saldoChip(nv)}</td>
+      <td>${(nv&&nv.tipo)||"—"}</td>
+      <td>${etapaLabel(m.etapa)}${m.esSaldo?` <span class="badge b-saldo">Saldo</span>`:""}</td>
+      <td>${m.nombreEnvia}</td><td>${fmtDT(m.fechaEnvio)}</td>
+      <td>${(m.adjuntos||[]).map(a=>`<div class="file-chip"><a href="${a.url}" target="_blank">📎 ${a.nombre}</a></div>`).join("")||"—"}</td>
+      <td style="white-space:nowrap">
+        <button class="btn ok" onclick="confirmarRecepcion('${m.id}','${m.nvNumero}','${m.etapa}','${m.destinoRol}')">Recibir</button>
+        ${rol==="admin" ? `<button class="btn warn" onclick="revertirEnvio('${m.id}','${m.nvNumero}','${m.etapa}','${m.origenRol}')">Deshacer</button>` : ""}
+      </td>
+    </tr>`;
+    }).join("");
+    document.querySelectorAll(".pd-sel").forEach(cb=>{
+      cb.addEventListener("change", ()=>{
+        if(cb.checked) seleccion.add(cb.value); else seleccion.delete(cb.value);
+        document.getElementById("pd-selall").checked = document.querySelectorAll(".pd-sel").length>0 && document.querySelectorAll(".pd-sel:checked").length===document.querySelectorAll(".pd-sel").length;
+        actualizarBulkBtn();
+      });
+    });
+    document.getElementById("pd-selall").checked = filtradas.length>0 && filtradas.every(m=>seleccion.has(m.id));
+    actualizarBulkBtn();
+  }
+  document.querySelectorAll(".pd-f").forEach(inp=> inp.addEventListener("input", pintarPendientes));
+  document.getElementById("pd-selall").addEventListener("change", (e)=>{
+    document.querySelectorAll(".pd-sel").forEach(cb=>{
+      cb.checked = e.target.checked;
+      if(e.target.checked) seleccion.add(cb.value); else seleccion.delete(cb.value);
+    });
+    actualizarBulkBtn();
+  });
+  document.getElementById("pd-bulk-btn").onclick = async ()=>{
+    const btn = document.getElementById("pd-bulk-btn");
+    btn.disabled = true;
+    const ids = Array.from(seleccion);
+    let hechas=0;
+    for(const movId of ids){
+      const m = MOVS.find(x=>x.id===movId);
+      if(!m) continue;
+      btn.textContent = `Recibiendo ${hechas+1}/${ids.length}...`;
+      await registrarRecepcion(movId, m.nvNumero, m.etapa, m.destinoRol, true);
+      hechas++;
+    }
+    seleccion.clear();
+    toast(`${hechas} NV recibidas`);
+  };
+  pintarPendientes();
+}
+async function confirmarRecepcion(movId, nvNumero, etapa, destinoRol){
+  await registrarRecepcion(movId, nvNumero, etapa, destinoRol);
+}
+
+/* =========================================================
+   DEVOLUCIÓN / SALDO
+========================================================= */
+function renderDevolucion(main){
+  const enFlujo = NVS.filter(n=>[ESTADOS.EN_PROGRAMADOR, ESTADOS.EN_GESTION, ESTADOS.EN_JEFE].includes(n.estado));
+  main.innerHTML = `
+  <div class="card">
+    <h2>Registrar devolución de NV o Saldo</h2>
+    <label>NV</label>
+    <select id="dev-nv">
+      <option value="">Selecciona una NV en Programador, Gestión Documental o Jefe de Despacho</option>
+      ${enFlujo.map(n=>`<option value="${n.id}">${n.numero}${n.estadoOrigen?" ["+n.estadoOrigen+"]":""}${n.esSaldoNV?" (SALDO NV)":""} — ${n.cliente||""} (${n.estado})</option>`).join("")}
+    </select>
+    <label>Destino de la devolución</label>
+    <select id="dev-destino">
+      <option value="programador">Programador (para emisión de Saldo)</option>
+      <option value="asistente">Asistente Comercial</option>
+      <option value="credito">Crédito</option>
+    </select>
+    <small class="hint">"Programador (para emisión de Saldo)" es para cuando Gestión Documental o Jefe de Despacho devuelven la NV al Programador para que la reprograme; una vez reprogramada, el Programador la reenvía y vuelve automáticamente a quien se la devolvió.</small>
+    <div class="checkbox-row" style="margin-top:10px">
+      <input type="checkbox" id="dev-essaldo">
+      <label style="margin:0" for="dev-essaldo">Es un Saldo de NV (dispatch incompleto)</label>
+    </div>
+    <div id="dev-saldo-box" style="display:none">
+      <label>Cantidad / monto del saldo</label>
+      <input id="dev-cantidad" type="number">
+    </div>
+    <label>Comentario / motivo</label>
+    <textarea id="dev-comentario" rows="2"></textarea>
+    <button class="btn warn" style="margin-top:12px" id="dev-btn">Registrar devolución</button>
+  </div>`;
+  document.getElementById("dev-essaldo").onchange = (e)=>{
+    document.getElementById("dev-saldo-box").style.display = e.target.checked ? "block":"none";
+  };
+  document.getElementById("dev-btn").onclick = async ()=>{
+    const nvId = document.getElementById("dev-nv").value;
+    if(!nvId){ toast("Selecciona una NV", true); return; }
+    const nv = NVS.find(n=>n.id===nvId);
+    const destino = document.getElementById("dev-destino").value;
+    const esSaldo = document.getElementById("dev-essaldo").checked;
+    const esParaProgramador = destino==="programador";
+    if(esParaProgramador && ![ESTADOS.EN_GESTION, ESTADOS.EN_JEFE].includes(nv.estado)){
+      toast("Esa NV no está en Gestión Documental ni en Jefe de Despacho", true); return;
+    }
+    await registrarEnvio({
+      nvNumero: nv.numero, etapa: esParaProgramador ? "saldo_devolucion" : "devolucion", destinoRol: destino,
+      comentario: document.getElementById("dev-comentario").value,
+      esSaldo, cantidadSaldo: esSaldo ? document.getElementById("dev-cantidad").value : null
+    });
+    toast("Devolución registrada");
+    renderDevolucion(main);
+  };
+}
+
+function renderLineaTiempo(main){
+  main.innerHTML = `
+  <div class="card">
+    <h2>Línea de tiempo por NV</h2>
+    <input id="lt-buscar" placeholder="Ingresa el N° de NV" list="lt-list">
+    <datalist id="lt-list">${NVS.map(n=>`<option value="${n.numero}">`).join("")}</datalist>
+    <button class="btn" style="margin-top:10px" onclick="buscarLineaTiempo()">Buscar</button>
+    <div id="lt-result" style="margin-top:16px"></div>
+  </div>`;
+}
+function buscarLineaTiempo(){
+  const numero = document.getElementById("lt-buscar").value.trim();
+  const nv = NVS.find(n=>n.numero===numero);
+  const box = document.getElementById("lt-result");
+  if(!nv){ box.innerHTML = `<div class="empty">NV no encontrada.</div>`; return; }
+  const movs = MOVS.filter(m=>m.nvNumero===numero).sort((a,b)=>{
+    const ta = a.fechaEnvio?.toDate ? a.fechaEnvio.toDate().getTime():0;
+    const tb = b.fechaEnvio?.toDate ? b.fechaEnvio.toDate().getTime():0;
+    return ta-tb;
+  });
+  box.innerHTML = `
+    <p><b>${nv.numero}</b>${eoChip(nv.estadoOrigen)}${saldoChip(nv)} — ${nv.cliente||"—"} — Vendedor: ${nv.vendedor||"—"} — Emisión: ${nv.fechaEmision||"—"} — <span class="badge ${badgeClass(nv.estado)}">${nv.estado}</span></p>
+    <div class="timeline">
+    ${movs.length===0 ? `<div class="empty">Sin movimientos registrados aún.</div>` : movs.map(m=>`
+      <div class="tl-item">
+        <div class="etapa">${etapaLabel(m.etapa)} → ${ROLES[m.destinoRol]||m.destinoRol}${m.esSaldo?` <span class="badge b-saldo">Saldo</span>`:""}</div>
+        <div class="meta">Enviado por ${m.nombreEnvia} — ${fmtDT(m.fechaEnvio)}</div>
+        <div class="meta">${m.estado==="recibido" ? `Recibido por ${m.nombreRecibe} — ${fmtDT(m.fechaRecepcion)}` : `<span style="color:var(--naranja)">Pendiente de recepción</span>`}</div>
+        ${m.comentario ? `<div class="meta">Comentario: ${m.comentario}</div>`:""}
+        ${(m.adjuntos||[]).length ? `<div>${m.adjuntos.map(a=>`<span class="file-chip"><a href="${a.url}" target="_blank">📎 ${a.nombre}</a></span>`).join("")}</div>` : ""}
+      </div>
+    `).join("")}
+    </div>`;
+}
+
+/* =========================================================
+   LISTADO GENERAL
+========================================================= */
+function renderListado(main){
+  main.innerHTML = `
+  <div class="card">
+    <h2>Listado de NV <span class="pill-count">${NVS.length}</span></h2>
+    <input id="ls-filtro" placeholder="Buscar por N° NV o cliente" style="margin-bottom:10px" oninput="filtrarListado()">
+    <div id="ls-tabla"></div>
+  </div>`;
+  pintarListado(NVS);
+}
+function filtrarListado(){
+  const q = document.getElementById("ls-filtro").value.toLowerCase();
+  pintarListado(NVS.filter(n=> (n.numero||"").toLowerCase().includes(q) || (n.cliente||"").toLowerCase().includes(q)));
+}
+function pintarListado(lista){
+  document.getElementById("ls-tabla").innerHTML = `
+  <table><thead><tr><th>NV</th><th>Tipo</th><th>Cliente</th><th>Vendedor</th><th>F. Emisión</th><th>Estado</th><th>Actualizado</th></tr></thead>
+  <tbody>${lista.map(n=>`<tr>
+    <td>${n.numero}${n.retenidaCredito?` <span class="badge b-devuelta">Retenida Crédito</span>`:""}${eoChip(n.estadoOrigen)}${saldoChip(n)}</td><td>${n.tipo||"—"}</td><td>${n.cliente||"—"}</td><td>${n.vendedor||"—"}</td><td>${n.fechaEmision||"—"}</td>
+    <td><span class="badge ${badgeClass(n.estado)}">${n.estado}</span></td>
+    <td>${fmtDT(n.ultimaActualizacion)}</td>
+  </tr>`).join("") || `<tr><td colspan="7" class="empty">Sin resultados.</td></tr>`}</tbody></table>`;
+}
+
+/* =========================================================
+   MAESTRO (solo admin) — usuarios
+========================================================= */
+function renderMaestro(main){
+  main.innerHTML = `
+  <div class="card">
+    <h2>Usuarios</h2>
+    <small class="hint">El "Usuario (login)" siempre se guarda y compara en minúsculas, sin importar cómo lo escribas — así se evitan duplicados por mayúsculas/minúsculas al iniciar sesión. El "Nombre" (el que se muestra en pantalla) respeta las mayúsculas que escribas.</small>
+    <table style="margin-top:10px"><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Activo</th><th></th></tr></thead>
+    <tbody>${USERS.map(u=>`<tr>
+      <td>${u.id}</td><td>${u.nombre}</td><td>${ROLES[u.rol]||u.rol}</td>
+      <td>${u.activo===false?"No":"Sí"}</td>
+      <td style="white-space:nowrap">
+        <button class="btn sec" onclick="openEditarUsuario('${u.id}')">Editar</button>
+        <button class="btn sec" onclick="toggleUsuario('${u.id}',${u.activo===false})">${u.activo===false?"Habilitar":"Deshabilitar"}</button>
+        <button class="btn warn" onclick="eliminarUsuario('${u.id}')">Eliminar</button>
+      </td>
+    </tr>`).join("")}</tbody></table>
+    <h3>Crear usuario</h3>
+    <div class="row">
+      <div><label>Usuario (login)</label><input id="mu-usuario"></div>
+      <div><label>Nombre</label><input id="mu-nombre"></div>
+    </div>
+    <div class="row">
+      <div><label>Clave</label>
+        <div class="pwd-wrap">
+          <input id="mu-clave" type="password">
+          <button type="button" onclick="togglePass('mu-clave', this)">👁️</button>
+        </div>
+      </div>
+      <div><label>Rol</label>
+        <select id="mu-rol">${Object.entries(ROLES).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select>
+      </div>
+    </div>
+    <button class="btn" style="margin-top:12px" id="mu-btn">Crear usuario</button>
+  </div>`;
+  document.getElementById("mu-btn").onclick = async ()=>{
+    const usuario = document.getElementById("mu-usuario").value.trim().toLowerCase();
+    if(!usuario){ toast("Falta el usuario", true); return; }
+    const existente = USERS.find(u=>u.id===usuario);
+    if(existente){ toast("Ese usuario ya existe", true); return; }
+    await db.collection("usuarios").doc(usuario).set({
+      nombre: document.getElementById("mu-nombre").value,
+      clave: document.getElementById("mu-clave").value,
+      rol: document.getElementById("mu-rol").value,
+      activo: true
+    });
+    toast("Usuario creado");
+    document.getElementById("mu-usuario").value="";
+    document.getElementById("mu-nombre").value="";
+    document.getElementById("mu-clave").value="";
+  };
+}
+async function toggleUsuario(id, habilitar){
+  await db.collection("usuarios").doc(id).update({activo: habilitar});
+}
+async function eliminarUsuario(id){
+  if(SESSION.usuario===id){ toast("No puedes eliminar tu propio usuario mientras tienes la sesión abierta", true); return; }
+  if(!confirm(`¿Eliminar definitivamente al usuario "${id}"? Esta acción no se puede deshacer.`)) return;
+  await db.collection("usuarios").doc(id).delete();
+  toast("Usuario eliminado");
+}
+function openEditarUsuario(id){
+  const u = USERS.find(x=>x.id===id);
+  if(!u) return;
+  const root = document.getElementById("modal-root");
+  root.innerHTML = `
+  <div class="modal-bg" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <button class="close-x" onclick="closeModal()">✕</button>
+      <h3>Editar usuario ${u.id}</h3>
+      <label>Nombre</label>
+      <input id="eu-nombre" value="${u.nombre||""}">
+      <label>Rol</label>
+      <select id="eu-rol">${Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${u.rol===k?"selected":""}>${v}</option>`).join("")}</select>
+      <label>Nueva clave (dejar en blanco para no cambiarla)</label>
+      <div class="pwd-wrap">
+        <input id="eu-clave" type="password" placeholder="••••••">
+        <button type="button" onclick="togglePass('eu-clave', this)">👁️</button>
+      </div>
+      <button class="btn" style="margin-top:14px;width:100%" id="eu-guardar">Guardar cambios</button>
+      <div class="err" id="eu-err"></div>
+    </div>
+  </div>`;
+  document.getElementById("eu-guardar").onclick = async ()=>{
+    const btn = document.getElementById("eu-guardar");
+    btn.disabled = true; btn.textContent = "Guardando...";
+    try{
+      const cambios = {
+        nombre: document.getElementById("eu-nombre").value,
+        rol: document.getElementById("eu-rol").value
+      };
+      const nuevaClave = document.getElementById("eu-clave").value;
+      if(nuevaClave) cambios.clave = nuevaClave;
+      await db.collection("usuarios").doc(u.id).update(cambios);
+      closeModal();
+      toast("Usuario actualizado");
+    }catch(e){
+      document.getElementById("eu-err").textContent = "Error: "+e.message;
+      btn.disabled=false; btn.textContent="Guardar cambios";
+    }
+  };
+}
+
+/* =========================================================
+   BOOT
+========================================================= */
+async function boot(){
+  if(!SESSION){
+    try{
+      const snap = await db.collection("usuarios").limit(1).get();
+      if(snap.empty){ renderSetupAdmin(); return; }
+    }catch(e){
+      // si falla la verificación (ej. config de Firebase incompleta), cae al login normal
+    }
+    renderLogin();
+    return;
+  }
+  startListeners();
+  render();
+}
+boot();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
